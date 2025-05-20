@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAnalysis, CompetitorAnalysis, CompetitorAttribute } from './useAnalysis';
@@ -133,7 +132,7 @@ export const useReport = (id: string | undefined) => {
     fetchData();
   }, [id]);
 
-  // Ensure retryLoading always returns a Promise<void>
+  // Ensure retryLoading always returns a Promise<void> with proper generic type
   const retryLoading = async (): Promise<void> => {
     console.log("Retrying data load...");
     setError(null);

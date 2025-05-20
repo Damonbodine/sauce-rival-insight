@@ -123,7 +123,8 @@ const BusinessForm: React.FC = () => {
       
       console.log("Business data saved:", businessData);
       const businessId = businessData.id;
-
+      console.log("Inserted business id →", businessId); // Added as suggested for debugging
+      
       // If URL mode is selected and we have a URL, analyze the website
       if (inputMode === 'url' && websiteUrl) {
         setIsAnalyzing(true);
