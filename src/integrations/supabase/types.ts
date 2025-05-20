@@ -33,7 +33,11 @@ export type Database = {
       competitor_sites: {
         Row: {
           business_id: string
+          crawl_error: string | null
+          crawl_status: string | null
+          crawled_at: string | null
           created_at: string
+          firecrawl_id: string | null
           id: string
           name: string
           source_rank: number | null
@@ -42,7 +46,11 @@ export type Database = {
         }
         Insert: {
           business_id: string
+          crawl_error?: string | null
+          crawl_status?: string | null
+          crawled_at?: string | null
           created_at?: string
+          firecrawl_id?: string | null
           id?: string
           name: string
           source_rank?: number | null
@@ -51,7 +59,11 @@ export type Database = {
         }
         Update: {
           business_id?: string
+          crawl_error?: string | null
+          crawl_status?: string | null
+          crawled_at?: string | null
           created_at?: string
+          firecrawl_id?: string | null
           id?: string
           name?: string
           source_rank?: number | null

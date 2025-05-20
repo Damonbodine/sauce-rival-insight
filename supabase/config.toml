@@ -3,3 +3,6 @@ project_id = "kzzgmrxxmifwlrepgukl"
 
 [functions.fetch_competitors]
 verify_jwt = false
+
+[functions.crawl_competitors]
+verify_jwt = false

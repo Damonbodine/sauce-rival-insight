@@ -6,11 +6,13 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const BusinessForm: React.FC = () => {
   const [description, setDescription] = useState('');
   const [keywords, setKeywords] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [crawlCompetitors, setCrawlCompetitors] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -74,6 +76,36 @@ const BusinessForm: React.FC = () => {
         description: `Found ${competitorData.competitors} potential competitors.`
       });
       
+      // If crawlCompetitors is checked, also trigger the crawl_competitors function
+      if (crawlCompetitors) {
+        toast({
+          title: "Starting competitor website crawl",
+          description: "This may take a few minutes..."
+        });
+        
+        try {
+          const { data: crawlData, error: crawlError } = await supabase.functions.invoke('crawl_competitors', {
+            body: { business_input_id: businessId }
+          });
+          
+          if (crawlError) {
+            console.error("Error crawling competitors:", crawlError);
+            toast({
+              title: "Error crawling competitors",
+              description: crawlError.message,
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "Competitor crawling initiated",
+              description: crawlData.message
+            });
+          }
+        } catch (crawlError) {
+          console.error("Error invoking crawl function:", crawlError);
+        }
+      }
+      
       // Redirect to the report page
       navigate(`/report/${businessId}`);
     } catch (error) {
@@ -115,6 +147,20 @@ const BusinessForm: React.FC = () => {
           onChange={(e) => setKeywords(e.target.value)}
         />
         <p className="text-xs text-gray-500">Enter keywords separated by commas</p>
+      </div>
+      
+      <div className="flex items-center space-x-2">
+        <Checkbox 
+          id="crawlCompetitors" 
+          checked={crawlCompetitors}
+          onCheckedChange={(checked) => setCrawlCompetitors(checked as boolean)}
+        />
+        <label
+          htmlFor="crawlCompetitors"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          Also crawl competitor websites (may take longer)
+        </label>
       </div>
       
       <Button 

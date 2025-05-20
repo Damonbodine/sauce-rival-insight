@@ -5,9 +5,11 @@ import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Check, X, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/components/ui/use-toast';
 
 interface Business {
   id: string;
@@ -21,6 +23,10 @@ interface Competitor {
   url: string;
   summary: string | null;
   source_rank: number | null;
+  firecrawl_id: string | null;
+  crawl_status: string | null;
+  crawl_error: string | null;
+  crawled_at: string | null;
 }
 
 const ReportPage = () => {
@@ -29,6 +35,8 @@ const ReportPage = () => {
   const [business, setBusiness] = useState<Business | null>(null);
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isCrawling, setIsCrawling] = useState(false);
+  const { toast } = useToast();
   
   useEffect(() => {
     const fetchData = async () => {
@@ -50,10 +58,10 @@ const ReportPage = () => {
         
         setBusiness(businessData);
         
-        // Fetch competitor details
+        // Fetch competitor details with crawl information
         const { data: competitorsData, error: competitorsError } = await supabase
           .from('competitor_sites')
-          .select('id, name, url, summary, source_rank')
+          .select('id, name, url, summary, source_rank, firecrawl_id, crawl_status, crawl_error, crawled_at')
           .eq('business_id', id)
           .order('source_rank', { ascending: false, nullsFirst: false });
           
@@ -72,6 +80,68 @@ const ReportPage = () => {
     
     fetchData();
   }, [id]);
+
+  const handleCrawlCompetitors = async () => {
+    if (!id) return;
+
+    setIsCrawling(true);
+    
+    try {
+      toast({
+        title: "Starting competitor website crawl",
+        description: "This may take a few minutes..."
+      });
+      
+      const { data: crawlData, error: crawlError } = await supabase.functions.invoke('crawl_competitors', {
+        body: { business_input_id: id }
+      });
+      
+      if (crawlError) {
+        console.error("Error crawling competitors:", crawlError);
+        toast({
+          title: "Error crawling competitors",
+          description: crawlError.message,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      toast({
+        title: "Competitor crawling complete",
+        description: crawlData.message
+      });
+      
+      // Refresh the competitor data
+      const { data: refreshedData } = await supabase
+        .from('competitor_sites')
+        .select('id, name, url, summary, source_rank, firecrawl_id, crawl_status, crawl_error, crawled_at')
+        .eq('business_id', id)
+        .order('source_rank', { ascending: false, nullsFirst: false });
+        
+      if (refreshedData) {
+        setCompetitors(refreshedData);
+      }
+    } catch (error) {
+      console.error("Error invoking crawl function:", error);
+      toast({
+        title: "Error crawling competitors",
+        description: error instanceof Error ? error.message : "Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCrawling(false);
+    }
+  };
+  
+  const getCrawlStatusBadge = (competitor: Competitor) => {
+    if (!competitor.crawl_status) {
+      return <Badge variant="outline" className="flex items-center gap-1"><Clock className="h-3 w-3" /> Not crawled</Badge>;
+    } else if (competitor.crawl_status === 'success') {
+      return <Badge variant="success" className="bg-green-100 text-green-800 flex items-center gap-1"><Check className="h-3 w-3" /> Crawled</Badge>;
+    } else {
+      return <Badge variant="destructive" className="flex items-center gap-1"><X className="h-3 w-3" /> Failed</Badge>;
+    }
+  };
   
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -146,8 +216,18 @@ const ReportPage = () => {
           </div>
 
           <Card className="mb-8">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Top Competitors</CardTitle>
+              {!loading && competitors.length > 0 && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleCrawlCompetitors}
+                  disabled={isCrawling}
+                >
+                  {isCrawling ? "Crawling..." : "Crawl Competitors"}
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -158,7 +238,8 @@ const ReportPage = () => {
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Summary</TableHead>
-                      <TableHead className="text-right">Relevance Score</TableHead>
+                      <TableHead className="text-right">Relevance</TableHead>
+                      <TableHead>Crawl Status</TableHead>
                       <TableHead className="w-[100px]">Link</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -175,6 +256,9 @@ const ReportPage = () => {
                           {competitor.source_rank !== null 
                             ? (competitor.source_rank * 100).toFixed(0) + '%' 
                             : 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          {getCrawlStatusBadge(competitor)}
                         </TableCell>
                         <TableCell>
                           <a 
