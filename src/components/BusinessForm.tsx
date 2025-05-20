@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const BusinessForm: React.FC = () => {
   const [description, setDescription] = useState('');
@@ -27,26 +28,59 @@ const BusinessForm: React.FC = () => {
 
     setIsSubmitting(true);
     
-    // This would typically connect to Supabase to store the data
-    // For now we'll simulate a successful submission
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Save business information to Supabase
+      const keywordsArray = keywords.trim() ? keywords.split(',').map(k => k.trim()) : null;
       
-      // Since we don't have Supabase yet, generate a placeholder ID
-      const tempId = Math.random().toString(36).substring(2, 15);
+      const { data: businessData, error: businessError } = await supabase
+        .from('business_inputs')
+        .insert({
+          description: description.trim(),
+          keywords: keywordsArray
+        })
+        .select()
+        .single();
+      
+      if (businessError) {
+        throw new Error(`Failed to save business information: ${businessError.message}`);
+      }
+      
+      // Trigger the fetch_competitors edge function
+      const businessId = businessData.id;
       
       toast({
-        title: "Form submitted successfully",
-        description: "Redirecting to your competitor report..."
+        title: "Business information saved",
+        description: "Fetching competitor information..."
+      });
+      
+      const { data: competitorData, error: competitorError } = await supabase.functions.invoke('fetch_competitors', {
+        body: { business_input_id: businessId }
+      });
+      
+      if (competitorError) {
+        console.error("Error fetching competitors:", competitorError);
+        toast({
+          title: "Error fetching competitors",
+          description: competitorError.message,
+          variant: "destructive"
+        });
+        // Still redirect to report page even if competitor fetching fails
+        navigate(`/report/${businessId}`);
+        return;
+      }
+      
+      toast({
+        title: "Competitor analysis complete",
+        description: `Found ${competitorData.competitors} potential competitors.`
       });
       
       // Redirect to the report page
-      navigate(`/report/${tempId}`);
+      navigate(`/report/${businessId}`);
     } catch (error) {
+      console.error("Form submission error:", error);
       toast({
         title: "Error submitting form",
-        description: "Please try again later.",
+        description: error instanceof Error ? error.message : "Please try again later.",
         variant: "destructive"
       });
     } finally {
