@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useReactToPrint } from 'react-to-print';
@@ -59,10 +58,7 @@ const ReportPage = () => {
       <ReportHeader 
         reportId={id} 
         error={error} 
-        onRetry={async () => {
-          // Wrap retryLoading in an async function to ensure it returns a Promise
-          return retryLoading();
-        }}
+        onRetry={retryLoading} // We can now directly use retryLoading since it returns a Promise<void>
         businessName={businessName}
         onExportPDF={handlePrint}
       />

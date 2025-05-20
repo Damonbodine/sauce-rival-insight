@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,13 +13,21 @@ import { Loader2, LinkIcon, PencilIcon } from "lucide-react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
+// Revise our form validation schema to ensure at least one field is filled
 const formSchema = z.object({
-  description: z.string().optional(),
+  description: z.string().min(1, "Business description is required for manual input").optional(),
   keywords: z.string().optional(),
   websiteUrl: z.string().url("Please enter a valid URL").optional(),
   crawlCompetitors: z.boolean().default(false),
-}).refine(data => !!data.description || !!data.websiteUrl, {
-  message: "Please either provide a business description or website URL",
+}).refine((data) => {
+  // For manual tab, description is required
+  if (!data.websiteUrl) {
+    return !!data.description && data.description.trim().length > 0;
+  }
+  // For URL tab, websiteUrl is required (already validated by z.string().url())
+  return true;
+}, {
+  message: "Please provide a business description when using manual input",
   path: ["description"]
 });
 
@@ -51,11 +58,42 @@ const BusinessForm: React.FC = () => {
     } else {
       form.clearErrors('description');
     }
+    
+    // Reset form values based on selected tab
+    if (value === 'manual') {
+      form.setValue('websiteUrl', '');
+    } else {
+      form.setValue('description', '');
+    }
   };
 
   const handleSubmit = async (values: FormValues) => {
     try {
+      // Add debugging
+      console.log("Form submitted with values:", values);
+      
       setIsSubmitting(true);
+      
+      // Validate based on input mode
+      if (inputMode === 'manual' && (!values.description || values.description.trim() === '')) {
+        toast({
+          title: "Error",
+          description: "Please provide a business description",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
+      if (inputMode === 'url' && (!values.websiteUrl || values.websiteUrl.trim() === '')) {
+        toast({
+          title: "Error",
+          description: "Please provide a website URL",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
       
       // Prepare data for submission
       const description = values.description?.trim() || '';
@@ -64,6 +102,8 @@ const BusinessForm: React.FC = () => {
         : null;
       const websiteUrl = values.websiteUrl?.trim() || null;
       const crawlCompetitors = values.crawlCompetitors;
+      
+      console.log("Prepared data:", { description, keywordsArray, websiteUrl });
       
       // Save initial business information to Supabase
       const { data: businessData, error: businessError } = await supabase
@@ -77,9 +117,11 @@ const BusinessForm: React.FC = () => {
         .single();
       
       if (businessError) {
+        console.error("Business save error:", businessError);
         throw new Error(`Failed to save business information: ${businessError.message}`);
       }
       
+      console.log("Business data saved:", businessData);
       const businessId = businessData.id;
 
       // If URL mode is selected and we have a URL, analyze the website
@@ -142,25 +184,36 @@ const BusinessForm: React.FC = () => {
         description: "Fetching competitor information..."
       });
       
-      const { data: competitorData, error: competitorError } = await supabase.functions.invoke('fetch_competitors', {
-        body: { business_input_id: businessId }
-      });
-      
-      if (competitorError) {
-        console.error("Error fetching competitors:", competitorError);
+      try {
+        const { data: competitorData, error: competitorError } = await supabase.functions.invoke('fetch_competitors', {
+          body: { business_input_id: businessId }
+        });
+        
+        if (competitorError) {
+          console.error("Error fetching competitors:", competitorError);
+          toast({
+            title: "Error fetching competitors",
+            description: competitorError.message,
+            variant: "destructive"
+          });
+          navigate(`/report/${businessId}`);
+          return;
+        }
+        
+        console.log("Competitor data fetched:", competitorData);
+        
+        toast({
+          title: "Competitor analysis complete",
+          description: `Found ${competitorData.competitors} potential competitors.`
+        });
+      } catch (fetchErr) {
+        console.error("Error invoking fetch_competitors function:", fetchErr);
         toast({
           title: "Error fetching competitors",
-          description: competitorError.message,
+          description: fetchErr instanceof Error ? fetchErr.message : "Failed to fetch competitors",
           variant: "destructive"
         });
-        navigate(`/report/${businessId}`);
-        return;
       }
-      
-      toast({
-        title: "Competitor analysis complete",
-        description: `Found ${competitorData.competitors} potential competitors.`
-      });
       
       // If crawlCompetitors is checked, also trigger the crawl_competitors function
       if (crawlCompetitors) {

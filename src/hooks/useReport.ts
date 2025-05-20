@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAnalysis, CompetitorAnalysis, CompetitorAttribute } from './useAnalysis';
@@ -127,11 +126,12 @@ export const useReport = (id: string | undefined) => {
     fetchData();
   }, [id]);
 
-  // Function to manually retry loading - now returns a Promise
+  // Update retryLoading to explicitly return a Promise
   const retryLoading = async (): Promise<void> => {
     setError(null);
     setRetryCount(0);
-    return fetchData();
+    await fetchData(); // Make sure we're awaiting fetchData
+    return Promise.resolve(); // Explicitly return a resolved promise
   };
 
   const refreshCompetitors = async () => {
