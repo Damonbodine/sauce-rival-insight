@@ -1,8 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { OpenAI } from "https://esm.sh/langchain/llms/openai";
-import { PromptTemplate } from "https://esm.sh/langchain/prompts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 // Initialization
@@ -99,7 +97,7 @@ serve(async (req) => {
       })
     );
 
-    // 4. Initialize OpenAI
+    // 4. Check if OpenAI API key is available
     if (!OPENAI_API_KEY) {
       return new Response(
         JSON.stringify({ error: "OpenAI API key not configured" }),
@@ -107,18 +105,12 @@ serve(async (req) => {
       );
     }
 
-    const model = new OpenAI({
-      modelName: "gpt-4o-mini", // Using a more affordable model that's still powerful
-      openAIApiKey: OPENAI_API_KEY,
-      temperature: 0.2, // Lower temperature for more factual responses
-    });
-
     // 5. Setup industry context
     const industry = businessData.detected_industry || 
                     businessData.business_category || 
                     "general business";
     
-    // 6. Analyze each competitor
+    // 6. Analyze each competitor using OpenAI directly instead of LangChain
     const competitorAttributes = await Promise.all(
       competitors.map(async (competitor, index) => {
         console.log(`Analyzing competitor ${index + 1}/${competitors.length}: ${competitor.name}`);
@@ -131,12 +123,9 @@ serve(async (req) => {
           competitor.rawContent ? `Website Content: ${competitor.rawContent.substring(0, 10000)}` : "No raw content available"
         ].join("\n\n");
 
-        const competitorPrompt = PromptTemplate.fromTemplate(`
+        const systemPrompt = `
           You are a business analyst specializing in competitive analysis for the ${industry} industry.
-          Analyze the following competitor information and extract key details:
-
-          ${contentToAnalyze}
-
+          Analyze the following competitor information and extract key details.
           Extract the following information in JSON format:
           1. Product Types: What products or services does this company offer?
           2. Price Points: What pricing information can you find (specific prices, positioning like premium/budget)?
@@ -153,10 +142,40 @@ serve(async (req) => {
             "targetCustomer": "description of target customers"
           }
           Only return the JSON object and nothing else.
-        `);
+        `;
 
         try {
-          const result = await model.call(competitorPrompt.format({}));
+          // Direct OpenAI API call
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${OPENAI_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: "gpt-4o-mini", // Using a more affordable model that's still powerful
+              messages: [
+                {
+                  role: 'system',
+                  content: systemPrompt
+                },
+                {
+                  role: 'user',
+                  content: contentToAnalyze
+                }
+              ],
+              temperature: 0.2, // Lower temperature for more factual responses
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`OpenAI API error: ${JSON.stringify(errorData)}`);
+          }
+
+          const openAIResponse = await response.json();
+          const result = openAIResponse.choices[0].message.content;
+          
           // Parse the JSON response
           let parsedResult;
           try {
@@ -206,7 +225,7 @@ serve(async (req) => {
     // 7. Generate overall summary insights
     console.log("Generating summary insights across all competitors");
     
-    const summaryPrompt = PromptTemplate.fromTemplate(`
+    const summaryPrompt = `
       You are a business strategy consultant specializing in the ${industry} industry.
       
       Business Description: ${businessData.description}
@@ -222,11 +241,40 @@ serve(async (req) => {
       
       Provide your insights in a detailed, actionable format that the business owner can use to inform their strategy.
       Your response should be well-structured with clear sections for each area above.
-    `);
+    `;
 
     let summaryInsights;
     try {
-      summaryInsights = await model.call(summaryPrompt.format({}));
+      // Direct OpenAI API call for summary insights
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini", // Using a more affordable model that's still powerful
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a business strategy consultant. Provide detailed, actionable insights.'
+            },
+            {
+              role: 'user',
+              content: summaryPrompt
+            }
+          ],
+          temperature: 0.3,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`OpenAI API error: ${JSON.stringify(errorData)}`);
+      }
+
+      const openAIResponse = await response.json();
+      summaryInsights = openAIResponse.choices[0].message.content;
     } catch (error) {
       console.error("Error generating summary insights:", error);
       summaryInsights = `Error generating summary insights: ${error.message}`;

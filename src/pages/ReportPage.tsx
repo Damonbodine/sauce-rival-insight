@@ -59,7 +59,10 @@ const ReportPage = () => {
       <ReportHeader 
         reportId={id} 
         error={error} 
-        onRetry={retryLoading}
+        onRetry={() => {
+          // Convert retryLoading to return a Promise to match the expected type
+          return Promise.resolve(retryLoading());
+        }}
         businessName={businessName}
         onExportPDF={handlePrint}
       />
