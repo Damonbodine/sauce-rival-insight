@@ -1,3 +1,4 @@
+
 import React, { useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useReactToPrint } from 'react-to-print';
@@ -39,6 +40,14 @@ const ReportPage = () => {
     },
   });
 
+  // Ensure onRetry returns a Promise to match the type expected by ReportHeader
+  const handleRetry = async (): Promise<void> => {
+    if (retryLoading) {
+      return retryLoading();
+    }
+    return Promise.resolve();
+  };
+
   // Get a short business name from description
   const getBusinessName = () => {
     if (!business?.description) return '';
@@ -58,7 +67,7 @@ const ReportPage = () => {
       <ReportHeader 
         reportId={id} 
         error={error} 
-        onRetry={retryLoading} // We can now directly use retryLoading since it returns a Promise<void>
+        onRetry={handleRetry} // Now uses our wrapper function that returns a Promise
         businessName={businessName}
         onExportPDF={handlePrint}
       />
