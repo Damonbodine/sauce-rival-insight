@@ -1,5 +1,5 @@
 
-import React, { useRef, useCallback } from 'react';
+import React, { useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useReactToPrint } from 'react-to-print';
 import ReportHeader from '@/components/report/ReportHeader';
@@ -22,7 +22,6 @@ const ReportPage = () => {
     competitors,
     analysis,
     error,
-    retryLoading,
     isCrawling,
     analysisLoading,
     refreshCompetitors,
@@ -45,15 +44,6 @@ const ReportPage = () => {
     },
   });
 
-  // Using async with explicit Promise<void> return type
-  const handleRetry = useCallback(async (): Promise<void> => {
-    console.log("handleRetry clicked");
-    if (retryLoading) {
-      return retryLoading(); // This will now return Promise<void>
-    }
-    return Promise.resolve(); // Explicitly return a Promise<void> if retryLoading is undefined
-  }, [retryLoading]);
-
   // Get a short business name from description
   const getBusinessName = () => {
     if (!business?.description) return '';
@@ -73,7 +63,6 @@ const ReportPage = () => {
       <ReportHeader 
         reportId={id} 
         error={error} 
-        onRetry={handleRetry}
         businessName={businessName}
         onExportPDF={handlePrint}
       />

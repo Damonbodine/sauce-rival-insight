@@ -30,7 +30,6 @@ export const useReport = (id: string | undefined) => {
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
   const [analysis, setAnalysis] = useState<CompetitorAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
   const { toast } = useToast();
   
   const { 
@@ -40,25 +39,6 @@ export const useReport = (id: string | undefined) => {
     handleAnalyzeCompetitors,
     parseAnalysisData
   } = useAnalysis(id);
-
-  // Function to retry fetching data with exponential backoff
-  const retryFetch = () => {
-    if (retryCount < 3) {
-      const delay = Math.pow(2, retryCount) * 1000;
-      console.log(`Retrying fetch in ${delay}ms (attempt ${retryCount + 1}/3)`);
-      
-      setTimeout(() => {
-        setRetryCount(prev => prev + 1);
-        fetchData();
-      }, delay);
-    } else {
-      toast({
-        title: "Connection issues",
-        description: "We're having trouble connecting to the database. Please check your internet connection.",
-        variant: "destructive"
-      });
-    }
-  };
 
   const fetchData = async () => {
     if (!id) return;
@@ -119,11 +99,6 @@ export const useReport = (id: string | undefined) => {
     } catch (err) {
       console.error("Error fetching report data:", err);
       setError(err instanceof Error ? err.message : "Failed to load report data");
-      
-      // Attempt to retry the fetch if we have network issues
-      if (err instanceof Error && err.message.includes("Failed to fetch")) {
-        retryFetch();
-      }
     } finally {
       setLoading(false);
     }
@@ -132,22 +107,6 @@ export const useReport = (id: string | undefined) => {
   useEffect(() => {
     fetchData();
   }, [id]);
-
-  // Fixed: Explicitly typed as Promise<void> and explicitly returns a Promise
-  const retryLoading = async (): Promise<void> => {
-    console.log("Retrying data load...");
-    console.log("retryLoading fired"); // Added debug log
-    setError(null);
-    setRetryCount(0);
-    try {
-      await fetchData();
-      console.log("Data load retry completed successfully");
-      return Promise.resolve(); // Explicitly return a Promise
-    } catch (err) {
-      console.error("Error during data reload:", err);
-      return Promise.reject(err); // Explicitly reject the Promise
-    }
-  };
 
   const refreshCompetitors = async () => {
     console.log("Refreshing competitors...");
@@ -208,7 +167,6 @@ export const useReport = (id: string | undefined) => {
     analysisLoading,
     refreshCompetitors,
     analyzeCompetitors,
-    formatDate,
-    retryLoading
+    formatDate
   };
 };

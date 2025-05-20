@@ -3,17 +3,16 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RefreshCcw, FileText } from 'lucide-react';
+import { ArrowLeft, FileText } from 'lucide-react';
 
 interface ReportHeaderProps {
   reportId?: string;
   error: string | null;
-  onRetry?: () => Promise<void>; // Properly typed as Promise<void>
   businessName?: string;
   onExportPDF?: () => void;
 }
 
-const ReportHeader = ({ reportId, error, onRetry, businessName, onExportPDF }: ReportHeaderProps) => {
+const ReportHeader = ({ reportId, error, businessName, onExportPDF }: ReportHeaderProps) => {
   return (
     <div>
       <header className="border-b bg-white">
@@ -58,17 +57,6 @@ const ReportHeader = ({ reportId, error, onRetry, businessName, onExportPDF }: R
           <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
             <div className="flex justify-between items-center">
               <p className="text-red-800 text-sm">{error}</p>
-              {onRetry && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={onRetry}
-                  className="text-red-800 border-red-300 hover:bg-red-100 flex items-center gap-1"
-                >
-                  <RefreshCcw className="h-3 w-3" />
-                  Retry Connection
-                </Button>
-              )}
             </div>
           </div>
         )}
