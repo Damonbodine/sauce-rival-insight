@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -71,7 +72,7 @@ const BusinessForm: React.FC = () => {
     try {
       // Add debugging
       console.log("Form submitted with values:", values);
-      console.log("Submitting values →", values);  // New debug log
+      console.log("Submitting values →", values);
       
       setIsSubmitting(true);
       
@@ -124,7 +125,7 @@ const BusinessForm: React.FC = () => {
       
       console.log("Business data saved:", businessData);
       const businessId = businessData.id;
-      console.log("Inserted business id →", businessId); // Added as suggested for debugging
+      console.log("Inserted business id →", businessId);
       
       // If URL mode is selected and we have a URL, analyze the website
       if (inputMode === 'url' && websiteUrl) {
@@ -375,7 +376,12 @@ const BusinessForm: React.FC = () => {
                 className="w-full bg-blue-600 hover:bg-blue-700 transition-colors"
                 disabled={isSubmitting || isAnalyzing}
               >
-                {isSubmitting ? "Generating..." : "Generate Competitor Report"}
+                {isSubmitting ? (
+                  <div className="flex items-center">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </div>
+                ) : "Generate Competitor Report"}
               </Button>
             </div>
           </form>

@@ -34,7 +34,7 @@ const ReportPage = () => {
     onBeforePrint: () => {
       document.body.classList.add('printing');
     },
-    onAfterPrint: async () => { // ✨ FIX APPLIED HERE: Added async
+    onAfterPrint: () => {
       document.body.classList.remove('printing');
       toast({
         title: "Export successful",
