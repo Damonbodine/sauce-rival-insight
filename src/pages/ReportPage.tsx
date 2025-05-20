@@ -45,18 +45,10 @@ const ReportPage = () => {
     },
   });
 
-  // Ensure onRetry returns a Promise to match the type expected by ReportHeader
+  // Fix: Ensure handleRetry properly returns a Promise<void> to match the type expected by ReportHeader
   const handleRetry = async (): Promise<void> => {
     if (retryLoading) {
-      try {
-        console.log("Retrying data loading...");
-        await retryLoading();
-        console.log("Retry completed successfully");
-        return Promise.resolve();
-      } catch (err) {
-        console.error("Error during retry:", err);
-        return Promise.reject(err);
-      }
+      return retryLoading();
     }
     return Promise.resolve();
   };
@@ -80,7 +72,7 @@ const ReportPage = () => {
       <ReportHeader 
         reportId={id} 
         error={error} 
-        onRetry={handleRetry} // Now uses our wrapper function that returns a Promise
+        onRetry={handleRetry}
         businessName={businessName}
         onExportPDF={handlePrint}
       />

@@ -133,7 +133,7 @@ export const useReport = (id: string | undefined) => {
     fetchData();
   }, [id]);
 
-  // Update retryLoading to explicitly return a Promise
+  // Fix: Ensure retryLoading explicitly returns a Promise<void>
   const retryLoading = async (): Promise<void> => {
     console.log("Retrying data load...");
     setError(null);
