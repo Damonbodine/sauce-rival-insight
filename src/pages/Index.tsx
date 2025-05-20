@@ -16,7 +16,7 @@ const Index = () => {
           <div className="text-center space-y-4">
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900">
               AI-Powered Competitor Analysis for 
-              <span className="text-hotSauce-600"> Hot Sauce Brands</span>
+              <span className="text-blue-600"> Any Business</span>
             </h1>
             <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
               Get actionable insights on your competitors with our advanced AI analysis. 

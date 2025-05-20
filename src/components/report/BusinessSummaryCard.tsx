@@ -24,7 +24,7 @@ const BusinessSummaryCard = ({ loading, business }: BusinessSummaryCardProps) =>
           <div>
             <p className="text-gray-700 mb-2">{business.description}</p>
             {business.detected_industry && (
-              <p className="text-sm text-gray-500">Industry: {business.detected_industry}</p>
+              <p className="text-sm text-blue-600 font-medium">Industry: {business.detected_industry}</p>
             )}
           </div>
         ) : (

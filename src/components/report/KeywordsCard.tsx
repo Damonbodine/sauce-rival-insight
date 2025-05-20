@@ -22,7 +22,7 @@ const KeywordsCard = ({ loading, keywords }: KeywordsCardProps) => {
             {keywords.map((keyword, index) => (
               <span 
                 key={index} 
-                className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm"
+                className="px-3 py-1 bg-blue-50 text-blue-800 border border-blue-100 rounded-full text-sm"
               >
                 {keyword}
               </span>

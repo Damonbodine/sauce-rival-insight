@@ -128,7 +128,7 @@ const BusinessForm: React.FC = () => {
         </label>
         <Textarea
           id="description"
-          placeholder="We create artisanal hot sauces with unique flavor profiles using locally sourced ingredients..."
+          placeholder="We provide innovative solutions with a focus on quality and customer satisfaction..."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="min-h-[120px]"
@@ -142,7 +142,7 @@ const BusinessForm: React.FC = () => {
         </label>
         <Input
           id="keywords"
-          placeholder="artisanal, spicy, organic, small-batch, etc."
+          placeholder="quality, affordable, innovative, customer-focused, etc."
           value={keywords}
           onChange={(e) => setKeywords(e.target.value)}
         />
@@ -165,7 +165,7 @@ const BusinessForm: React.FC = () => {
       
       <Button 
         type="submit" 
-        className="w-full bg-hotSauce-600 hover:bg-hotSauce-700 transition-colors"
+        className="w-full bg-blue-600 hover:bg-blue-700 transition-colors"
         disabled={isSubmitting}
       >
         {isSubmitting ? "Generating..." : "Generate Competitor Report"}
