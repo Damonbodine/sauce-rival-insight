@@ -101,23 +101,25 @@ const ReportPage = () => {
       </footer>
 
       {/* Print-specific styles */}
-      <style jsx global>{`
-        @media print {
-          body {
-            background: white !important;
+      <style>
+        {`
+          @media print {
+            body {
+              background: white !important;
+            }
+            
+            .print\\:hidden {
+              display: none !important;
+            }
+            
+            .container {
+              max-width: 100% !important;
+              padding: 0 !important;
+              margin: 0 !important;
+            }
           }
-          
-          .print\\:hidden {
-            display: none !important;
-          }
-          
-          .container {
-            max-width: 100% !important;
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-        }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 };

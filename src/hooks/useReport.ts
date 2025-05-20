@@ -127,11 +127,11 @@ export const useReport = (id: string | undefined) => {
     fetchData();
   }, [id]);
 
-  // Function to manually retry loading
-  const retryLoading = () => {
+  // Function to manually retry loading - now returns a Promise
+  const retryLoading = async (): Promise<void> => {
     setError(null);
     setRetryCount(0);
-    fetchData();
+    return fetchData();
   };
 
   const refreshCompetitors = async () => {

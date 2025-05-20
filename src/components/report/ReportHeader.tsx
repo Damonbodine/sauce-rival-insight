@@ -8,7 +8,7 @@ import { ArrowLeft, RefreshCcw, FileText } from 'lucide-react';
 interface ReportHeaderProps {
   reportId?: string;
   error: string | null;
-  onRetry?: () => void;
+  onRetry?: () => Promise<void>;
   businessName?: string;
   onExportPDF?: () => void;
 }
