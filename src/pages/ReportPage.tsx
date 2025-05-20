@@ -5,7 +5,7 @@ import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, ExternalLink, Check, X, Clock } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Check, X, Clock, BarChart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,8 @@ interface Business {
   id: string;
   description: string;
   keywords: string[] | null;
+  business_category: string | null;
+  detected_industry: string | null;
 }
 
 interface Competitor {
@@ -29,11 +31,37 @@ interface Competitor {
   crawled_at: string | null;
 }
 
+interface CompetitorAttribute {
+  id: string;
+  name: string;
+  url: string;
+  attributes: {
+    productTypes?: string[];
+    pricePoints?: string;
+    uniqueSellingPropositions?: string[];
+    toneBranding?: string;
+    targetCustomer?: string;
+    error?: string;
+    message?: string;
+    raw?: string;
+  };
+}
+
+interface CompetitorAnalysis {
+  id: string;
+  business_id: string;
+  attributes_json: CompetitorAttribute[];
+  summary_insights: string;
+  created_at: string;
+}
+
 const ReportPage = () => {
   const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(true);
   const [business, setBusiness] = useState<Business | null>(null);
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
+  const [analysis, setAnalysis] = useState<CompetitorAnalysis | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCrawling, setIsCrawling] = useState(false);
   const { toast } = useToast();
@@ -48,7 +76,7 @@ const ReportPage = () => {
         // Fetch business details
         const { data: businessData, error: businessError } = await supabase
           .from('business_inputs')
-          .select('id, description, keywords')
+          .select('id, description, keywords, business_category, detected_industry')
           .eq('id', id)
           .single();
           
@@ -70,6 +98,19 @@ const ReportPage = () => {
         }
         
         setCompetitors(competitorsData || []);
+        
+        // Check if there's an existing analysis
+        const { data: analysisData, error: analysisError } = await supabase
+          .from('competitor_analysis')
+          .select('*')
+          .eq('business_id', id)
+          .order('created_at', { ascending: false })
+          .maybeSingle();
+          
+        if (!analysisError && analysisData) {
+          setAnalysis(analysisData);
+        }
+        
       } catch (err) {
         console.error("Error fetching report data:", err);
         setError(err instanceof Error ? err.message : "Failed to load report data");
@@ -133,6 +174,60 @@ const ReportPage = () => {
     }
   };
   
+  const handleAnalyzeCompetitors = async () => {
+    if (!id) return;
+
+    setAnalysisLoading(true);
+    
+    try {
+      toast({
+        title: "Starting competitor analysis",
+        description: "This may take a few minutes..."
+      });
+      
+      const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze_competitors', {
+        body: { business_input_id: id }
+      });
+      
+      if (analysisError) {
+        console.error("Error analyzing competitors:", analysisError);
+        toast({
+          title: "Error analyzing competitors",
+          description: analysisError.message,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      toast({
+        title: "Competitor analysis complete",
+        description: `Analyzed ${analysisData.competitorsAnalyzed} competitors successfully.`
+      });
+      
+      // Fetch the newly created analysis
+      const { data: newAnalysis, error: fetchError } = await supabase
+        .from('competitor_analysis')
+        .select('*')
+        .eq('id', analysisData.analysisId)
+        .single();
+        
+      if (fetchError) {
+        console.error("Error fetching analysis:", fetchError);
+      } else if (newAnalysis) {
+        setAnalysis(newAnalysis);
+      }
+    } catch (error) {
+      console.error("Error invoking analysis function:", error);
+      toast({
+        title: "Error analyzing competitors",
+        description: error instanceof Error ? error.message : "Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
+      setAnalysisLoading(false);
+    }
+  };
+  
   const getCrawlStatusBadge = (competitor: Competitor) => {
     if (!competitor.crawl_status) {
       return <Badge variant="outline" className="flex items-center gap-1"><Clock className="h-3 w-3" /> Not crawled</Badge>;
@@ -141,6 +236,11 @@ const ReportPage = () => {
     } else {
       return <Badge variant="destructive" className="flex items-center gap-1"><X className="h-3 w-3" /> Failed</Badge>;
     }
+  };
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleString();
   };
   
   return (
@@ -183,7 +283,12 @@ const ReportPage = () => {
                 {loading ? (
                   <Skeleton className="h-24 w-full" />
                 ) : business ? (
-                  <p className="text-gray-700">{business.description}</p>
+                  <div>
+                    <p className="text-gray-700 mb-2">{business.description}</p>
+                    {business.detected_industry && (
+                      <p className="text-sm text-gray-500">Industry: {business.detected_industry}</p>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-gray-500 italic">No business description found</p>
                 )}
@@ -218,16 +323,30 @@ const ReportPage = () => {
           <Card className="mb-8">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Top Competitors</CardTitle>
-              {!loading && competitors.length > 0 && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleCrawlCompetitors}
-                  disabled={isCrawling}
-                >
-                  {isCrawling ? "Crawling..." : "Crawl Competitors"}
-                </Button>
-              )}
+              <div className="flex gap-2">
+                {!loading && competitors.length > 0 && (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleCrawlCompetitors}
+                      disabled={isCrawling}
+                    >
+                      {isCrawling ? "Crawling..." : "Crawl Competitors"}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleAnalyzeCompetitors}
+                      disabled={analysisLoading || competitors.filter(c => c.crawl_status === 'success').length === 0}
+                      className="flex items-center gap-1"
+                    >
+                      {analysisLoading ? "Analyzing..." : "Analyze Competitors"}
+                      <BarChart className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -285,37 +404,145 @@ const ReportPage = () => {
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader>
-              <CardTitle>Competitive Insights</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <Skeleton className="h-64 w-full" />
-              ) : competitors.length > 0 ? (
-                <div className="space-y-4">
-                  <p className="text-gray-700">
-                    Based on your business description, we've identified {competitors.length} potential 
-                    competitors in your market space. Review their websites to understand their:
+          {analysis ? (
+            <div className="space-y-6 mb-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex justify-between items-center">
+                    <span>AI-Generated Competitive Insights</span>
+                    <Badge variant="outline" className="text-xs font-normal">
+                      Generated {formatDate(analysis.created_at)}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="prose max-w-none">
+                    <div className="whitespace-pre-line text-gray-700">
+                      {analysis.summary_insights}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Competitor Detailed Analysis</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-8">
+                    {analysis.attributes_json.map((competitor) => (
+                      <div key={competitor.id} className="border-b pb-6 last:border-0 last:pb-0">
+                        <h3 className="text-xl font-semibold mb-2">{competitor.name}</h3>
+                        <a 
+                          href={competitor.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-sm text-hotSauce-600 hover:text-hotSauce-800 inline-flex items-center gap-1 mb-4"
+                        >
+                          {competitor.url} <ExternalLink className="w-3 h-3" />
+                        </a>
+                        
+                        {competitor.attributes.error ? (
+                          <div className="text-red-500">Analysis failed: {competitor.attributes.message}</div>
+                        ) : (
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <h4 className="font-medium text-gray-800 mb-1">Product Types</h4>
+                              {competitor.attributes.productTypes && competitor.attributes.productTypes.length > 0 ? (
+                                <ul className="list-disc pl-5 space-y-1">
+                                  {competitor.attributes.productTypes.map((product, idx) => (
+                                    <li key={idx} className="text-sm text-gray-600">{product}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="text-sm text-gray-500">No product information available</p>
+                              )}
+                              
+                              <h4 className="font-medium text-gray-800 mt-4 mb-1">Price Points</h4>
+                              <p className="text-sm text-gray-600">{competitor.attributes.pricePoints || "No pricing information available"}</p>
+                            </div>
+                            
+                            <div>
+                              <h4 className="font-medium text-gray-800 mb-1">Unique Selling Points</h4>
+                              {competitor.attributes.uniqueSellingPropositions && competitor.attributes.uniqueSellingPropositions.length > 0 ? (
+                                <ul className="list-disc pl-5 space-y-1">
+                                  {competitor.attributes.uniqueSellingPropositions.map((usp, idx) => (
+                                    <li key={idx} className="text-sm text-gray-600">{usp}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="text-sm text-gray-500">No USPs identified</p>
+                              )}
+                              
+                              <h4 className="font-medium text-gray-800 mt-4 mb-1">Brand Tone</h4>
+                              <p className="text-sm text-gray-600">{competitor.attributes.toneBranding || "No branding information available"}</p>
+                              
+                              <h4 className="font-medium text-gray-800 mt-4 mb-1">Target Customer</h4>
+                              <p className="text-sm text-gray-600">{competitor.attributes.targetCustomer || "No target customer information available"}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Competitive Insights</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {analysisLoading ? (
+                  <div className="space-y-4">
+                    <Skeleton className="h-8 w-3/4" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-5/6" />
+                    <Skeleton className="h-8 w-2/3 mt-6" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                  </div>
+                ) : competitors.length > 0 ? (
+                  <div className="space-y-4">
+                    <p className="text-gray-700">
+                      Based on your business description, we've identified {competitors.length} potential 
+                      competitors in your market space. Review their websites to understand their:
+                    </p>
+                    <ul className="list-disc pl-5 space-y-2 text-gray-700">
+                      <li>Product offerings and pricing strategies</li>
+                      <li>Marketing messaging and brand positioning</li>
+                      <li>Customer experience and website design</li>
+                      <li>Target audience and market segments</li>
+                    </ul>
+                    
+                    {competitors.filter(c => c.crawl_status === 'success').length > 0 ? (
+                      <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
+                        <p className="font-medium text-amber-800">Ready for AI Analysis</p>
+                        <p className="text-sm text-amber-700 mt-1">
+                          Click the "Analyze Competitors" button above to generate detailed competitive insights 
+                          using AI. This will analyze competitor websites and provide strategic recommendations.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                        <p className="font-medium text-blue-800">Crawl Competitors First</p>
+                        <p className="text-sm text-blue-700 mt-1">
+                          Click the "Crawl Competitors" button above to gather website data. 
+                          Once the crawl is complete, you'll be able to generate AI-powered insights.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 italic">
+                    Competitor insights will be available once competitor data is loaded.
                   </p>
-                  <ul className="list-disc pl-5 space-y-2 text-gray-700">
-                    <li>Product offerings and pricing strategies</li>
-                    <li>Marketing messaging and brand positioning</li>
-                    <li>Customer experience and website design</li>
-                    <li>Target audience and market segments</li>
-                  </ul>
-                  <p className="text-gray-700 mt-4">
-                    Look for gaps in the market that your business can fill and unique selling 
-                    propositions that differentiate you from these competitors.
-                  </p>
-                </div>
-              ) : (
-                <p className="text-gray-500 italic">
-                  Competitor insights will be available once competitor data is loaded.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </main>
 

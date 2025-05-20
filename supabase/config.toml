@@ -6,3 +6,6 @@ verify_jwt = false
 
 [functions.crawl_competitors]
 verify_jwt = false
+
+[functions.analyze_competitors]
+verify_jwt = false

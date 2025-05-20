@@ -11,22 +11,81 @@ export type Database = {
     Tables: {
       business_inputs: {
         Row: {
+          business_category: string | null
           created_at: string
           description: string
+          detected_industry: string | null
           id: string
           keywords: string[] | null
         }
         Insert: {
+          business_category?: string | null
           created_at?: string
           description: string
+          detected_industry?: string | null
           id?: string
           keywords?: string[] | null
         }
         Update: {
+          business_category?: string | null
           created_at?: string
           description?: string
+          detected_industry?: string | null
           id?: string
           keywords?: string[] | null
+        }
+        Relationships: []
+      }
+      competitor_analysis: {
+        Row: {
+          attributes_json: Json
+          business_id: string
+          created_at: string
+          id: string
+          summary_insights: string
+        }
+        Insert: {
+          attributes_json: Json
+          business_id: string
+          created_at?: string
+          id?: string
+          summary_insights: string
+        }
+        Update: {
+          attributes_json?: Json
+          business_id?: string
+          created_at?: string
+          id?: string
+          summary_insights?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitor_analysis_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_inputs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      competitor_raw_content: {
+        Row: {
+          content: string | null
+          created_at: string
+          firecrawl_id: string
+          id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          firecrawl_id: string
+          id?: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          firecrawl_id?: string
+          id?: string
         }
         Relationships: []
       }
