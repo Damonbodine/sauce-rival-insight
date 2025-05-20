@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
+import { Json } from '@/integrations/supabase/types';
 
 interface Business {
   id: string;
@@ -107,13 +108,46 @@ const ReportPage = () => {
           .maybeSingle();
           
         if (!analysisError && analysisData) {
-          // Convert the attributes_json field from JSON to the expected CompetitorAttribute[] type
+          // Convert the attributes_json field from raw JSON to CompetitorAttribute[]
+          // This properly maps the JSON data to our expected interface type
+          const parsedAttributes: CompetitorAttribute[] = Array.isArray(analysisData.attributes_json) 
+            ? analysisData.attributes_json.map((item: Json) => {
+                // Ensure each item conforms to our CompetitorAttribute interface
+                if (typeof item === 'object' && item !== null) {
+                  return {
+                    id: String(item.id || ''),
+                    name: String(item.name || ''),
+                    url: String(item.url || ''),
+                    attributes: {
+                      productTypes: Array.isArray(item.attributes?.productTypes) 
+                        ? item.attributes.productTypes.map(String)
+                        : [],
+                      pricePoints: String(item.attributes?.pricePoints || ''),
+                      uniqueSellingPropositions: Array.isArray(item.attributes?.uniqueSellingPropositions)
+                        ? item.attributes.uniqueSellingPropositions.map(String)
+                        : [],
+                      toneBranding: String(item.attributes?.toneBranding || ''),
+                      targetCustomer: String(item.attributes?.targetCustomer || ''),
+                      error: String(item.attributes?.error || ''),
+                      message: String(item.attributes?.message || '')
+                    }
+                  };
+                }
+                // Fallback for invalid data
+                return {
+                  id: '',
+                  name: '',
+                  url: '',
+                  attributes: { error: 'Invalid data format' }
+                };
+              })
+            : [];
+          
           const typedAnalysis: CompetitorAnalysis = {
             ...analysisData,
-            attributes_json: Array.isArray(analysisData.attributes_json) 
-              ? analysisData.attributes_json 
-              : []
+            attributes_json: parsedAttributes
           };
+          
           setAnalysis(typedAnalysis);
         }
         
@@ -220,13 +254,45 @@ const ReportPage = () => {
       if (fetchError) {
         console.error("Error fetching analysis:", fetchError);
       } else if (newAnalysis) {
-        // Convert the attributes_json field from JSON to the expected CompetitorAttribute[] type
+        // Convert the attributes_json field from raw JSON to CompetitorAttribute[]
+        const parsedAttributes: CompetitorAttribute[] = Array.isArray(newAnalysis.attributes_json) 
+          ? newAnalysis.attributes_json.map((item: Json) => {
+              // Ensure each item conforms to our CompetitorAttribute interface
+              if (typeof item === 'object' && item !== null) {
+                return {
+                  id: String(item.id || ''),
+                  name: String(item.name || ''),
+                  url: String(item.url || ''),
+                  attributes: {
+                    productTypes: Array.isArray(item.attributes?.productTypes) 
+                      ? item.attributes.productTypes.map(String)
+                      : [],
+                    pricePoints: String(item.attributes?.pricePoints || ''),
+                    uniqueSellingPropositions: Array.isArray(item.attributes?.uniqueSellingPropositions)
+                      ? item.attributes.uniqueSellingPropositions.map(String)
+                      : [],
+                    toneBranding: String(item.attributes?.toneBranding || ''),
+                    targetCustomer: String(item.attributes?.targetCustomer || ''),
+                    error: String(item.attributes?.error || ''),
+                    message: String(item.attributes?.message || '')
+                  }
+                };
+              }
+              // Fallback for invalid data
+              return {
+                id: '',
+                name: '',
+                url: '',
+                attributes: { error: 'Invalid data format' }
+              };
+            })
+          : [];
+        
         const typedAnalysis: CompetitorAnalysis = {
           ...newAnalysis,
-          attributes_json: Array.isArray(newAnalysis.attributes_json) 
-            ? newAnalysis.attributes_json 
-            : []
+          attributes_json: parsedAttributes
         };
+        
         setAnalysis(typedAnalysis);
       }
     } catch (error) {
