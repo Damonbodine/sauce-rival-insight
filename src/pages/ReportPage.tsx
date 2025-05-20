@@ -7,6 +7,7 @@ import BusinessSummaryCard from '@/components/report/BusinessSummaryCard';
 import KeywordsCard from '@/components/report/KeywordsCard';
 import SummaryInsightsCard from '@/components/report/SummaryInsightsCard';
 import CompetitorGrid from '@/components/report/CompetitorGrid';
+import CompetitorsCard from '@/components/report/CompetitorsCard';
 import { useReport } from '@/hooks/useReport';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -21,7 +22,11 @@ const ReportPage = () => {
     competitors,
     analysis,
     error,
-    retryLoading
+    retryLoading,
+    isCrawling,
+    analysisLoading,
+    refreshCompetitors,
+    analyzeCompetitors
   } = useReport(id);
 
   // Handle PDF export
@@ -43,7 +48,15 @@ const ReportPage = () => {
   // Ensure onRetry returns a Promise to match the type expected by ReportHeader
   const handleRetry = async (): Promise<void> => {
     if (retryLoading) {
-      return retryLoading();
+      try {
+        console.log("Retrying data loading...");
+        await retryLoading();
+        console.log("Retry completed successfully");
+        return Promise.resolve();
+      } catch (err) {
+        console.error("Error during retry:", err);
+        return Promise.reject(err);
+      }
     }
     return Promise.resolve();
   };
@@ -79,6 +92,17 @@ const ReportPage = () => {
             <KeywordsCard loading={loading} keywords={business?.keywords} />
           </div>
 
+          {!loading && competitors && competitors.length > 0 && (
+            <CompetitorsCard 
+              loading={loading}
+              competitors={competitors}
+              isCrawling={isCrawling}
+              analysisLoading={analysisLoading}
+              onCrawl={refreshCompetitors}
+              onAnalyze={analyzeCompetitors}
+            />
+          )}
+          
           <SummaryInsightsCard 
             loading={loading} 
             summaryInsights={analysis?.summary_insights} 

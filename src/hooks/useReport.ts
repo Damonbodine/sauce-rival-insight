@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAnalysis, CompetitorAnalysis, CompetitorAttribute } from './useAnalysis';
@@ -64,6 +65,7 @@ export const useReport = (id: string | undefined) => {
     
     try {
       setLoading(true);
+      console.log("Fetching data for business ID:", id);
       
       // Fetch business details
       const { data: businessData, error: businessError } = await supabase
@@ -77,6 +79,7 @@ export const useReport = (id: string | undefined) => {
         throw new Error(`Failed to fetch business data: ${businessError.message}`);
       }
       
+      console.log("Business data fetched:", businessData);
       setBusiness(businessData);
       
       // Fetch competitor details with crawl information
@@ -91,6 +94,7 @@ export const useReport = (id: string | undefined) => {
         throw new Error(`Failed to fetch competitor data: ${competitorsError.message}`);
       }
       
+      console.log(`Competitors fetched: ${competitorsData?.length || 0}`);
       setCompetitors(competitorsData || []);
       
       // Check if there's an existing analysis
@@ -102,8 +106,11 @@ export const useReport = (id: string | undefined) => {
         .maybeSingle();
         
       if (!analysisError && analysisData) {
+        console.log("Analysis data found:", analysisData);
         const typedAnalysis = parseAnalysisData(analysisData);
         setAnalysis(typedAnalysis);
+      } else if (analysisError) {
+        console.log("No analysis found or error:", analysisError);
       }
       
       // Clear any previous errors if successful
@@ -128,23 +135,60 @@ export const useReport = (id: string | undefined) => {
 
   // Update retryLoading to explicitly return a Promise
   const retryLoading = async (): Promise<void> => {
+    console.log("Retrying data load...");
     setError(null);
     setRetryCount(0);
-    await fetchData(); // Make sure we're awaiting fetchData
-    return Promise.resolve(); // Explicitly return a resolved promise
+    try {
+      await fetchData();
+      console.log("Data load retry completed successfully");
+      return Promise.resolve();
+    } catch (err) {
+      console.error("Error during data reload:", err);
+      return Promise.reject(err);
+    }
   };
 
   const refreshCompetitors = async () => {
-    const refreshedData = await handleCrawlCompetitors();
-    if (refreshedData) {
-      setCompetitors(refreshedData);
+    console.log("Refreshing competitors...");
+    try {
+      const refreshedData = await handleCrawlCompetitors();
+      if (refreshedData) {
+        console.log("Competitors refreshed successfully:", refreshedData.length);
+        setCompetitors(refreshedData);
+        toast({
+          title: "Competitor crawl initiated",
+          description: "We've started crawling your competitors' websites. This may take a few minutes."
+        });
+      }
+    } catch (err) {
+      console.error("Error refreshing competitors:", err);
+      toast({
+        title: "Error refreshing competitors",
+        description: err instanceof Error ? err.message : "An unknown error occurred",
+        variant: "destructive"
+      });
     }
   };
 
   const analyzeCompetitors = async () => {
-    const analysisResult = await handleAnalyzeCompetitors();
-    if (analysisResult) {
-      setAnalysis(analysisResult);
+    console.log("Analyzing competitors...");
+    try {
+      const analysisResult = await handleAnalyzeCompetitors();
+      if (analysisResult) {
+        console.log("Analysis completed successfully");
+        setAnalysis(analysisResult);
+        toast({
+          title: "Analysis complete",
+          description: "The competitor analysis has been completed successfully."
+        });
+      }
+    } catch (err) {
+      console.error("Error analyzing competitors:", err);
+      toast({
+        title: "Error analyzing competitors",
+        description: err instanceof Error ? err.message : "An unknown error occurred",
+        variant: "destructive"
+      });
     }
   };
 
