@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useReactToPrint } from 'react-to-print';
@@ -15,7 +14,7 @@ const ReportPage = () => {
   const { id } = useParams<{ id: string }>();
   const contentRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  
+
   const {
     loading,
     business,
@@ -35,7 +34,7 @@ const ReportPage = () => {
     onBeforePrint: () => {
       document.body.classList.add('printing');
     },
-    onAfterPrint: () => {
+    onAfterPrint: async () => { // ✨ FIX APPLIED HERE: Added async
       document.body.classList.remove('printing');
       toast({
         title: "Export successful",
@@ -47,11 +46,11 @@ const ReportPage = () => {
   // Get a short business name from description
   const getBusinessName = () => {
     if (!business?.description) return '';
-    
+
     // Try to extract a business name from the beginning of the description
     const words = business.description.split(' ');
     if (words.length <= 3) return business.description;
-    
+
     // Get first few words as the "name"
     return words.slice(0, 3).join(' ') + '...';
   };
@@ -60,9 +59,9 @@ const ReportPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      <ReportHeader 
-        reportId={id} 
-        error={error} 
+      <ReportHeader
+        reportId={id}
+        error={error}
         businessName={businessName}
         onExportPDF={handlePrint}
       />
@@ -75,7 +74,7 @@ const ReportPage = () => {
           </div>
 
           {!loading && competitors && competitors.length > 0 && (
-            <CompetitorsCard 
+            <CompetitorsCard
               loading={loading}
               competitors={competitors}
               isCrawling={isCrawling}
@@ -84,14 +83,14 @@ const ReportPage = () => {
               onAnalyze={analyzeCompetitors}
             />
           )}
-          
-          <SummaryInsightsCard 
-            loading={loading} 
-            summaryInsights={analysis?.summary_insights} 
+
+          <SummaryInsightsCard
+            loading={loading}
+            summaryInsights={analysis?.summary_insights}
           />
-          
+
           <h2 className="text-2xl font-bold mb-6">Competitor Grid</h2>
-          
+
           {!loading && !analysis && (
             <div className="text-center py-10 bg-blue-50 rounded-xl mb-8">
               <h3 className="text-xl font-medium text-blue-800">Your analysis is still in progress</h3>
@@ -100,11 +99,11 @@ const ReportPage = () => {
               </p>
             </div>
           )}
-          
+
           {analysis && (
-            <CompetitorGrid 
-              loading={loading} 
-              competitors={analysis.attributes_json || []} 
+            <CompetitorGrid
+              loading={loading}
+              competitors={analysis.attributes_json || []}
             />
           )}
         </div>
@@ -121,11 +120,11 @@ const ReportPage = () => {
             body {
               background: white !important;
             }
-            
+
             .print\\:hidden {
               display: none !important;
             }
-            
+
             .container {
               max-width: 100% !important;
               padding: 0 !important;
