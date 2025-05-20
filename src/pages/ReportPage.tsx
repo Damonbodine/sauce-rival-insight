@@ -1,3 +1,4 @@
+
 import React, { useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useReactToPrint } from 'react-to-print';
@@ -46,8 +47,12 @@ const ReportPage = () => {
 
   // Use useCallback to ensure handleRetry always returns a Promise<void>
   const handleRetry = useCallback((): Promise<void> => {
-    // Always return something that is a Promise
-    return retryLoading ? retryLoading() : Promise.resolve();
+    // Always return a Promise<void>
+    if (retryLoading) {
+      return retryLoading();
+    } else {
+      return Promise.resolve();
+    }
   }, [retryLoading]);
 
   // Get a short business name from description
