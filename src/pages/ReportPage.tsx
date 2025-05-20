@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Logo from '@/components/Logo';
@@ -108,7 +107,14 @@ const ReportPage = () => {
           .maybeSingle();
           
         if (!analysisError && analysisData) {
-          setAnalysis(analysisData);
+          // Convert the attributes_json field from JSON to the expected CompetitorAttribute[] type
+          const typedAnalysis: CompetitorAnalysis = {
+            ...analysisData,
+            attributes_json: Array.isArray(analysisData.attributes_json) 
+              ? analysisData.attributes_json 
+              : []
+          };
+          setAnalysis(typedAnalysis);
         }
         
       } catch (err) {
@@ -214,7 +220,14 @@ const ReportPage = () => {
       if (fetchError) {
         console.error("Error fetching analysis:", fetchError);
       } else if (newAnalysis) {
-        setAnalysis(newAnalysis);
+        // Convert the attributes_json field from JSON to the expected CompetitorAttribute[] type
+        const typedAnalysis: CompetitorAnalysis = {
+          ...newAnalysis,
+          attributes_json: Array.isArray(newAnalysis.attributes_json) 
+            ? newAnalysis.attributes_json 
+            : []
+        };
+        setAnalysis(typedAnalysis);
       }
     } catch (error) {
       console.error("Error invoking analysis function:", error);
