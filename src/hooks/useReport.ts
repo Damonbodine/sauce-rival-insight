@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAnalysis, CompetitorAnalysis, CompetitorAttribute } from './useAnalysis';
@@ -133,7 +132,7 @@ export const useReport = (id: string | undefined) => {
     fetchData();
   }, [id]);
 
-  // Fix: Ensure retryLoading explicitly returns a Promise<void>
+  // Ensure retryLoading explicitly returns a Promise<void> by using async/await
   const retryLoading = async (): Promise<void> => {
     console.log("Retrying data load...");
     setError(null);
@@ -141,10 +140,9 @@ export const useReport = (id: string | undefined) => {
     try {
       await fetchData();
       console.log("Data load retry completed successfully");
-      return Promise.resolve();
     } catch (err) {
       console.error("Error during data reload:", err);
-      return Promise.reject(err);
+      throw err; // Re-throw to ensure Promise rejection
     }
   };
 

@@ -45,11 +45,13 @@ const ReportPage = () => {
     },
   });
 
-  // Fixed: Ensure handleRetry properly returns a Promise<void>
+  // Fix the TypeScript error by ensuring handleRetry returns Promise<void>
   const handleRetry = (): Promise<void> => {
     if (retryLoading) {
+      // retryLoading returns a Promise<void> so we can return it directly
       return retryLoading();
     }
+    // If retryLoading is not available, return a resolved promise
     return Promise.resolve();
   };
 
