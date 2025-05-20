@@ -3,7 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, FileText, RefreshCw } from 'lucide-react';
+import { ArrowLeft, FileText } from 'lucide-react';
 
 interface ReportHeaderProps {
   reportId?: string;
