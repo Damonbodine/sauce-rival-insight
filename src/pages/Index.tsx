@@ -27,6 +27,7 @@ const Index = () => {
           <Card className="border shadow-lg">
             <CardHeader className="pb-4">
               <h2 className="text-xl font-semibold text-center">Tell us about your business</h2>
+              <p className="text-center text-gray-600">Enter your website URL or describe your business</p>
             </CardHeader>
             <CardContent>
               <BusinessForm />

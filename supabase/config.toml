@@ -9,3 +9,6 @@ verify_jwt = false
 
 [functions.analyze_competitors]
 verify_jwt = false
+
+[functions.analyze_business_website]
+verify_jwt = false

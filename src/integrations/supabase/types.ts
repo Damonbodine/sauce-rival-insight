@@ -17,6 +17,8 @@ export type Database = {
           detected_industry: string | null
           id: string
           keywords: string[] | null
+          url_analyzed: boolean | null
+          website_url: string | null
         }
         Insert: {
           business_category?: string | null
@@ -25,6 +27,8 @@ export type Database = {
           detected_industry?: string | null
           id?: string
           keywords?: string[] | null
+          url_analyzed?: boolean | null
+          website_url?: string | null
         }
         Update: {
           business_category?: string | null
@@ -33,6 +37,8 @@ export type Database = {
           detected_industry?: string | null
           id?: string
           keywords?: string[] | null
+          url_analyzed?: boolean | null
+          website_url?: string | null
         }
         Relationships: []
       }
