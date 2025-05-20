@@ -71,6 +71,7 @@ const BusinessForm: React.FC = () => {
     try {
       // Add debugging
       console.log("Form submitted with values:", values);
+      console.log("Submitting values →", values);  // New debug log
       
       setIsSubmitting(true);
       
