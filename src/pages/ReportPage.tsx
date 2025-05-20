@@ -1,3 +1,4 @@
+
 import React, { useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useReactToPrint } from 'react-to-print';
@@ -44,11 +45,13 @@ const ReportPage = () => {
     },
   });
 
-  // Use async/await in useCallback to ensure Promise<void> return type
+  // Using async with explicit Promise<void> return type
   const handleRetry = useCallback(async (): Promise<void> => {
+    console.log("handleRetry clicked");
     if (retryLoading) {
-      await retryLoading();
+      return retryLoading(); // This will now return Promise<void>
     }
+    return Promise.resolve(); // Explicitly return a Promise<void> if retryLoading is undefined
   }, [retryLoading]);
 
   // Get a short business name from description

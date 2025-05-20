@@ -133,17 +133,19 @@ export const useReport = (id: string | undefined) => {
     fetchData();
   }, [id]);
 
-  // Updated return type to explicitly be Promise<void>
+  // Fixed: Explicitly typed as Promise<void> and explicitly returns a Promise
   const retryLoading = async (): Promise<void> => {
     console.log("Retrying data load...");
+    console.log("retryLoading fired"); // Added debug log
     setError(null);
     setRetryCount(0);
     try {
       await fetchData();
       console.log("Data load retry completed successfully");
+      return Promise.resolve(); // Explicitly return a Promise
     } catch (err) {
       console.error("Error during data reload:", err);
-      throw err; // Re-throw to ensure Promise rejection
+      return Promise.reject(err); // Explicitly reject the Promise
     }
   };
 
