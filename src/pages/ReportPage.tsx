@@ -21,12 +21,13 @@ const ReportPage = () => {
     analysisLoading,
     refreshCompetitors,
     analyzeCompetitors,
-    formatDate
+    formatDate,
+    retryLoading
   } = useReport(id);
   
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      <ReportHeader reportId={id} error={error} />
+      <ReportHeader reportId={id} error={error} onRetry={retryLoading} />
 
       <main className="container flex-1 py-8 px-4">
         <div className="max-w-4xl mx-auto">

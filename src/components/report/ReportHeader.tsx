@@ -3,16 +3,17 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, RefreshCcw } from 'lucide-react';
 
 interface ReportHeaderProps {
   reportId?: string;
   error: string | null;
+  onRetry?: () => void;
 }
 
-const ReportHeader = ({ reportId, error }: ReportHeaderProps) => {
+const ReportHeader = ({ reportId, error, onRetry }: ReportHeaderProps) => {
   return (
-    <>
+    <div>
       <header className="border-b bg-white">
         <div className="container py-4 flex justify-between items-center">
           <Logo />
@@ -25,7 +26,7 @@ const ReportHeader = ({ reportId, error }: ReportHeaderProps) => {
         </div>
       </header>
 
-      <div className="mb-8">
+      <div className="container py-8">
         <h1 className="text-3xl font-bold mb-4">Your Competitor Analysis Report</h1>
         {reportId && (
           <p className="text-gray-600">
@@ -35,11 +36,24 @@ const ReportHeader = ({ reportId, error }: ReportHeaderProps) => {
         
         {error && (
           <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-red-800 text-sm">{error}</p>
+            <div className="flex justify-between items-center">
+              <p className="text-red-800 text-sm">{error}</p>
+              {onRetry && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={onRetry}
+                  className="text-red-800 border-red-300 hover:bg-red-100 flex items-center gap-1"
+                >
+                  <RefreshCcw className="h-3 w-3" />
+                  Retry Connection
+                </Button>
+              )}
+            </div>
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 };
 

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAnalysis, CompetitorAnalysis, CompetitorAttribute } from './useAnalysis';
+import { useToast } from '@/components/ui/use-toast';
 
 interface Business {
   id: string;
@@ -29,6 +30,8 @@ export const useReport = (id: string | undefined) => {
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
   const [analysis, setAnalysis] = useState<CompetitorAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const { toast } = useToast();
   
   const { 
     isCrawling, 
@@ -38,62 +41,98 @@ export const useReport = (id: string | undefined) => {
     parseAnalysisData
   } = useAnalysis(id);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!id) return;
+  // Function to retry fetching data with exponential backoff
+  const retryFetch = () => {
+    if (retryCount < 3) {
+      const delay = Math.pow(2, retryCount) * 1000;
+      console.log(`Retrying fetch in ${delay}ms (attempt ${retryCount + 1}/3)`);
       
-      try {
-        setLoading(true);
-        
-        // Fetch business details
-        const { data: businessData, error: businessError } = await supabase
-          .from('business_inputs')
-          .select('id, description, keywords, business_category, detected_industry')
-          .eq('id', id)
-          .single();
-          
-        if (businessError) {
-          throw new Error(`Failed to fetch business data: ${businessError.message}`);
-        }
-        
-        setBusiness(businessData);
-        
-        // Fetch competitor details with crawl information
-        const { data: competitorsData, error: competitorsError } = await supabase
-          .from('competitor_sites')
-          .select('id, name, url, summary, source_rank, firecrawl_id, crawl_status, crawl_error, crawled_at')
-          .eq('business_id', id)
-          .order('source_rank', { ascending: false, nullsFirst: false });
-          
-        if (competitorsError) {
-          throw new Error(`Failed to fetch competitor data: ${competitorsError.message}`);
-        }
-        
-        setCompetitors(competitorsData || []);
-        
-        // Check if there's an existing analysis
-        const { data: analysisData, error: analysisError } = await supabase
-          .from('competitor_analysis')
-          .select('*')
-          .eq('business_id', id)
-          .order('created_at', { ascending: false })
-          .maybeSingle();
-          
-        if (!analysisError && analysisData) {
-          const typedAnalysis = parseAnalysisData(analysisData);
-          setAnalysis(typedAnalysis);
-        }
-        
-      } catch (err) {
-        console.error("Error fetching report data:", err);
-        setError(err instanceof Error ? err.message : "Failed to load report data");
-      } finally {
-        setLoading(false);
-      }
-    };
+      setTimeout(() => {
+        setRetryCount(prev => prev + 1);
+        fetchData();
+      }, delay);
+    } else {
+      toast({
+        title: "Connection issues",
+        description: "We're having trouble connecting to the database. Please check your internet connection.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const fetchData = async () => {
+    if (!id) return;
     
+    try {
+      setLoading(true);
+      
+      // Fetch business details
+      const { data: businessData, error: businessError } = await supabase
+        .from('business_inputs')
+        .select('id, description, keywords, business_category, detected_industry')
+        .eq('id', id)
+        .single();
+        
+      if (businessError) {
+        console.error("Error fetching business data:", businessError);
+        throw new Error(`Failed to fetch business data: ${businessError.message}`);
+      }
+      
+      setBusiness(businessData);
+      
+      // Fetch competitor details with crawl information
+      const { data: competitorsData, error: competitorsError } = await supabase
+        .from('competitor_sites')
+        .select('id, name, url, summary, source_rank, firecrawl_id, crawl_status, crawl_error, crawled_at')
+        .eq('business_id', id)
+        .order('source_rank', { ascending: false, nullsFirst: false });
+        
+      if (competitorsError) {
+        console.error("Error fetching competitor data:", competitorsError);
+        throw new Error(`Failed to fetch competitor data: ${competitorsError.message}`);
+      }
+      
+      setCompetitors(competitorsData || []);
+      
+      // Check if there's an existing analysis
+      const { data: analysisData, error: analysisError } = await supabase
+        .from('competitor_analysis')
+        .select('*')
+        .eq('business_id', id)
+        .order('created_at', { ascending: false })
+        .maybeSingle();
+        
+      if (!analysisError && analysisData) {
+        const typedAnalysis = parseAnalysisData(analysisData);
+        setAnalysis(typedAnalysis);
+      }
+      
+      // Clear any previous errors if successful
+      setError(null);
+      
+    } catch (err) {
+      console.error("Error fetching report data:", err);
+      setError(err instanceof Error ? err.message : "Failed to load report data");
+      
+      // Attempt to retry the fetch if we have network issues
+      if (err instanceof Error && err.message.includes("Failed to fetch")) {
+        retryFetch();
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+    
+  useEffect(() => {
     fetchData();
-  }, [id, parseAnalysisData]);
+  }, [id]);
+
+  // Function to manually retry loading
+  const retryLoading = () => {
+    setError(null);
+    setRetryCount(0);
+    fetchData();
+  };
 
   const refreshCompetitors = async () => {
     const refreshedData = await handleCrawlCompetitors();
@@ -124,6 +163,7 @@ export const useReport = (id: string | undefined) => {
     analysisLoading,
     refreshCompetitors,
     analyzeCompetitors,
-    formatDate
+    formatDate,
+    retryLoading
   };
 };
