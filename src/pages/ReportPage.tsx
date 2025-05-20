@@ -1,5 +1,4 @@
-
-import React, { useRef } from 'react';
+import React, { useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useReactToPrint } from 'react-to-print';
 import ReportHeader from '@/components/report/ReportHeader';
@@ -45,15 +44,11 @@ const ReportPage = () => {
     },
   });
 
-  // Fix the TypeScript error by ensuring handleRetry returns Promise<void>
-  const handleRetry = (): Promise<void> => {
-    if (retryLoading) {
-      // retryLoading returns a Promise<void> so we can return it directly
-      return retryLoading();
-    }
-    // If retryLoading is not available, return a resolved promise
-    return Promise.resolve();
-  };
+  // Use useCallback to ensure handleRetry always returns a Promise<void>
+  const handleRetry = useCallback((): Promise<void> => {
+    // Always return something that is a Promise
+    return retryLoading ? retryLoading() : Promise.resolve();
+  }, [retryLoading]);
 
   // Get a short business name from description
   const getBusinessName = () => {
