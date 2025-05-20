@@ -137,7 +137,7 @@ const ReportPage = () => {
     if (!competitor.crawl_status) {
       return <Badge variant="outline" className="flex items-center gap-1"><Clock className="h-3 w-3" /> Not crawled</Badge>;
     } else if (competitor.crawl_status === 'success') {
-      return <Badge variant="success" className="bg-green-100 text-green-800 flex items-center gap-1"><Check className="h-3 w-3" /> Crawled</Badge>;
+      return <Badge variant="default" className="bg-green-100 text-green-800 flex items-center gap-1"><Check className="h-3 w-3" /> Crawled</Badge>;
     } else {
       return <Badge variant="destructive" className="flex items-center gap-1"><X className="h-3 w-3" /> Failed</Badge>;
     }
