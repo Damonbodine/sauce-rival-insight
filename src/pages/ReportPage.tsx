@@ -45,8 +45,8 @@ const ReportPage = () => {
     },
   });
 
-  // Fix: Ensure handleRetry properly returns a Promise<void> to match the type expected by ReportHeader
-  const handleRetry = async (): Promise<void> => {
+  // Fixed: Ensure handleRetry properly returns a Promise<void>
+  const handleRetry = (): Promise<void> => {
     if (retryLoading) {
       return retryLoading();
     }
